@@ -1,0 +1,13 @@
+Embedded Projects
+Temperature and Humidity Monitoring System and uploading to the cloud
+  Hardware Used: NodeMCU, DHT11 Sensor, LCD Display, Embedded C
+•	Designed a DHT11 sensor-based system to measure temperature and humidity.
+•	Used LCD display and NodeMCU for real-time data visualization.
+•	Uploading the data to the cloud and analysing the graph.
+
+Develop an intelligent Door Monitoring System (DMS) 
+  Hardware Used: Door sensor, light sensors, PIC Microcontroller
+•	Door Sensor Integration: Integrate door sensors with the microcontroller system to detect door open/close events accurately. 
+•	Automatic Lighting Control: Develop algorithms to control interior lighting based on the detected door status and roof switch mode. 
+•	LED Activation Logic: Define logic to activate LEDs based on the door status to provide visual indication to the user. 
+•	Testing and Validation: Conduct thorough testing to ensure the functionality, reliability, and performance of the Smart Door Monitoring System under various door scenarios and operating conditions.
