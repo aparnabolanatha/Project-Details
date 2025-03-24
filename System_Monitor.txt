@@ -8,8 +8,7 @@ DISK_THRESHOLD=80
 send_alert() 
 {
   echo "$(tput setaf 1)ALERT: $1 usage exceeded threshold! Current value: $2%$(tput sgr0)"
-  local message="ALERT: $1 usage exceeded threshold! Current value: $2%"
-  echo "$message" | mail -s "System Alert: $1" receiver@emailid.com
+  
 }
 while true; do
   
