@@ -1,0 +1,39 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    FILE *fp, *fp1;
+    fp = fopen("temperature.csv","r");
+    fp1 = fopen("temperature1.csv","w");
+    int avg, sum = 0;
+
+    if(fp == NULL)
+    {
+         printf("File does not exist");
+    }
+
+    else
+    {
+       char temp[100];
+
+       while(fgets(temp, 100, fp))
+        {
+            int temp1 = atoi(temp);
+            printf("%d\n",temp1);
+
+            sum = sum + temp1;
+            avg = sum / 100;
+
+            if( temp1 > 95)
+            {
+                fprintf(fp1,"%d\n",temp1);
+            }
+        }
+
+    }
+
+    printf("Avg = %d\n",avg);
+
+    fclose(fp);
+}
