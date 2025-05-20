@@ -1,0 +1,54 @@
+/* Use an ultrasonic sensor to detect car presence and display parking status on an IoT dashboard */
+
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ThingSpeak.h>
+
+
+const char* ssid = "SSID";
+const char* password = "PASSWORD";
+WiFiClient client;
+
+unsigned long ChannelNumber = CHANNEL_NUMBER;
+const char* WriteAPIKey = "API_KEY";
+
+const int trigPin = D5;
+const int echoPin = D6;
+
+void setup() 
+{
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(500);
+    Serial.print(".");
+  }
+
+  ThingSpeak.begin(client);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+}
+
+void loop() 
+{
+  long duration;
+  float distance;
+
+  digitalWrite(trigPin, LOW); delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH); delayMicroseconds(10); digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = duration / 58.0;
+
+  String status = (distance < 15.0) ? "Occupied" : "Available";
+
+  ThingSpeak.setField(1, distance);
+  ThingSpeak.setField(2, status);
+  ThingSpeak.writeFields(ChannelNumber, WriteAPIKey);
+
+  Serial.println("Distance: " + String(distance) + " cm | Status: " + status);
+
+  delay(15000); 
+}
