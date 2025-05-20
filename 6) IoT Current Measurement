@@ -1,0 +1,40 @@
+/* Current Measurement * /
+
+#include <WiFiClient.h>
+#include "ThingSpeak.h"
+
+const char* ssid = "SSID";
+const char* password = "PASSWORD";
+
+WiFiClient client;
+unsigned long ChannelNumber = CHANNEL_NUMBER;
+const char * WriteAPIKey = "API_KEY";
+
+int sensorPin = 34; // Analog pin for ACS712
+float voltage, current, power;
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000); Serial.println("Connecting...");
+  }
+  Serial.println("Connected!");
+  ThingSpeak.begin(client);
+}
+
+void loop() {
+  int adcValue = analogRead(sensorPin);
+  voltage = (adcValue * 3.3) / 4095.0;
+  current = (voltage - 2.5) / 0.185; // For 5A module
+  power = abs(current) * 230.0;     // Assume 230V
+
+  Serial.print("Current: "); Serial.print(current);
+  Serial.print(" A, Power: "); Serial.print(power); Serial.println(" W");
+
+  ThingSpeak.setField(1, current);
+  ThingSpeak.setField(2, power);
+  ThingSpeak.writeFields(ChannelNumber, WriteAPIKey);
+
+  delay(15000); 
+}
