@@ -40,11 +40,11 @@ void loop() {
 
   
   
-  float vOut = sensorVoltage * (10.0 + 3.3) / 3.3;  
+  float vout = sensorVoltage * (10.0 + 3.3) / 3.3;  
   
 
   // Convert voltage to current (assuming 5A module, 185mV/A sensitivity)
-  current = (vOut - 2.5) / 0.185;  // in Amps
+  current = (vout - 2.5) / 0.185;  // in Amps
 
   // Assume 230V AC supply
   power = abs(current) * 230.0;
