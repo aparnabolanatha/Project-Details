@@ -1,0 +1,57 @@
+/* Air Pollutant */
+
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ThingSpeak.h>
+
+
+const char* ssid = "SSID";
+const char* password = "PASSWORD";
+
+
+const char* apiKey = "API_KEY";  
+const long channelNumber = CHANNEL_NUMBER;  
+
+WiFiClient client;
+
+int mq135Pin = A0;  // Analog pin for MQ135
+
+void setup() 
+{
+  Serial.begin(115200);
+  delay(100);
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi...");
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println(" connected");
+
+  ThingSpeak.begin(client);
+}
+
+void loop()
+{
+  int sensorValue = analogRead(mq135Pin);
+  float voltage = sensorValue * (3.3 / 1023.0); // Convert to voltage
+  Serial.print("MQ135 Analog Value: ");
+  Serial.print(sensorValue);
+  Serial.print(" => Voltage: ");
+  Serial.println(voltage);
+
+  
+  ThingSpeak.setField(1, sensorValue);  
+  int result = ThingSpeak.writeFields(channelNumber, apiKey);
+
+  if (result == 200) {
+    Serial.println("Data sent to ThingSpeak successfully.");
+  } else {
+    Serial.print("Error sending data: ");
+    Serial.println(result);
+  }
+
+  delay(15000);  
+}
