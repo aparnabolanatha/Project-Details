@@ -1,0 +1,155 @@
+/* Develop a Multi-Priority Alarm System (MPAS) that utilizes interrupt-driven alarms and tasks to manage alarms of varying priorities effectively */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+typedef enum                           // Alarm priority and type definitions
+{
+    LOW = 0,
+    MEDIUM,
+    HIGH
+} AlarmPriority;
+
+typedef enum 
+{
+    ALARM_NONE,
+    ALARM_FIRE,
+    ALARM_SECURITY,
+    ALARM_LOW_BATTERY
+} AlarmType;
+
+typedef struct 
+{
+    AlarmType type;
+    AlarmPriority priority;
+} AlarmEvent;
+
+
+volatile int fire_triggered = 0;                                          // Simulated interrupt flags
+volatile int security_triggered = 0;
+volatile int battery_triggered = 0;
+
+
+#define MAX_EVENTS 10                                                   // Alarm queue
+AlarmEvent alarm_queue[MAX_EVENTS];
+int queue_count = 0;
+
+
+void fire_alarm_isr()                                                  // Simulated ISRs
+{
+    printf("[INTERRUPT] Fire alarm interrupt received!\n");
+    fire_triggered = 1;
+}
+
+void security_alarm_isr() 
+{
+    printf("[INTERRUPT] Security alarm interrupt received!\n");
+    security_triggered = 1;
+}
+
+void battery_alarm_isr()
+ {
+    printf("[INTERRUPT] Low battery alarm interrupt received!\n");
+    battery_triggered = 1;
+}
+
+
+void enqueue_alarm(AlarmType type, AlarmPriority priority)             // Enqueue alarms into the alarm queue
+{
+    if (queue_count < MAX_EVENTS) {
+        alarm_queue[queue_count++] = (AlarmEvent){type, priority};
+    } else {
+        printf("[WARNING] Alarm queue is full!\n");
+    }
+}
+
+
+void handle_alarm(AlarmEvent event)                                         // Handle alarm based on its type
+{
+    switch (event.type) 
+{
+        case ALARM_FIRE:
+            printf("[HIGH PRIORITY] Fire Alarm Triggered! Evacuate immediately!\n");
+            break;
+        case ALARM_SECURITY:
+            printf("[MEDIUM PRIORITY] Security Breach Detected! Lockdown protocols initiated!\n");
+            break;
+        case ALARM_LOW_BATTERY:
+            printf("[LOW PRIORITY] Low Battery Warning. Schedule maintenance soon.\n");
+            break;
+        default:
+            printf("[UNKNOWN] Unknown alarm type.\n");
+            break;
+    }
+}
+
+
+void process_alarms()                                                      // Sort and process alarms based on priority
+{
+    // Sort the alarm_queue by priority (High to Low)
+    for (int i = 0; i < queue_count - 1; i++) {
+        for (int j = i + 1; j < queue_count; j++) {
+            if (alarm_queue[i].priority < alarm_queue[j].priority) 
+            {
+                AlarmEvent temp = alarm_queue[i];
+                alarm_queue[i] = alarm_queue[j];
+                alarm_queue[j] = temp;
+            }
+        }
+    }
+
+    
+    for (int i = 0; i < queue_count; i++)                                 // Process each alarm
+    {
+        handle_alarm(alarm_queue[i]);
+    }
+
+    
+    queue_count = 0;
+}
+
+                                                                     
+void simulate_alarms()                                                 // Simulate alarm events
+{
+    
+    fire_alarm_isr();
+    battery_alarm_isr();
+    security_alarm_isr();
+
+    
+    if (fire_triggered)                                              // Check flags and enqueue alarms
+    {
+        enqueue_alarm(ALARM_FIRE, HIGH);
+        fire_triggered = 0;
+    }
+    if (security_triggered) 
+    {
+        enqueue_alarm(ALARM_SECURITY, MEDIUM);
+        security_triggered = 0;
+    }
+    if (battery_triggered) 
+    {
+        enqueue_alarm(ALARM_LOW_BATTERY, LOW);
+        battery_triggered = 0;
+    }
+
+    // Process alarms based on their priorities
+    process_alarms();
+}
+
+int main() 
+{
+    printf(" Multi-Priority Alarm System (MPAS) Simulation \n");
+
+    
+    for (int i = 0; i < 3; i++)                                            // Simulate alarm scenarios multiple times
+    {
+        printf("\n[Cycle %d] Simulating alarm events...\n", i + 1);
+        simulate_alarms();
+    }
+
+    
+    return 0;
+}
