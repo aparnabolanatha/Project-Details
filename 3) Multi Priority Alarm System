@@ -1,155 +1,121 @@
 /* Develop a Multi-Priority Alarm System (MPAS) that utilizes interrupt-driven alarms and tasks to manage alarms of varying priorities effectively */
 
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 
-typedef enum                           // Alarm priority and type definitions
+typedef enum                                             // Alarm priorities
 {
     LOW = 0,
     MEDIUM,
     HIGH
-} AlarmPriority;
+} alarm_priority_t;
 
-typedef enum 
+
+typedef enum                                            // Alarm types
 {
     ALARM_NONE,
     ALARM_FIRE,
     ALARM_SECURITY,
     ALARM_LOW_BATTERY
-} AlarmType;
+} alarm_type_t;
 
-typedef struct 
+
+typedef struct                                         // Alarm event structure
 {
-    AlarmType type;
-    AlarmPriority priority;
-} AlarmEvent;
+    alarm_type_t type;
+    alarm_priority_t priority;
+} alarm_event_t;
+
+// Queue handle
+QueueHandle_t xAlarmQueue;
 
 
-volatile int fire_triggered = 0;                                          // Simulated interrupt flags
-volatile int security_triggered = 0;
-volatile int battery_triggered = 0;
-
-
-#define MAX_EVENTS 10                                                   // Alarm queue
-AlarmEvent alarm_queue[MAX_EVENTS];
-int queue_count = 0;
-
-
-void fire_alarm_isr()                                                  // Simulated ISRs
+void fire_alarm_isr(void)                              // ISR simulations
 {
-    printf("[INTERRUPT] Fire alarm interrupt received!\n");
-    fire_triggered = 1;
+    alarm_event_t event = {ALARM_FIRE, HIGH};
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xQueueSendFromISR(xAlarmQueue, &event, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-void security_alarm_isr() 
+void security_alarm_isr(void) 
 {
-    printf("[INTERRUPT] Security alarm interrupt received!\n");
-    security_triggered = 1;
+    alarm_event_t event = {ALARM_SECURITY, MEDIUM};
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xQueueSendFromISR(xAlarmQueue, &event, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-void battery_alarm_isr()
- {
-    printf("[INTERRUPT] Low battery alarm interrupt received!\n");
-    battery_triggered = 1;
-}
-
-
-void enqueue_alarm(AlarmType type, AlarmPriority priority)             // Enqueue alarms into the alarm queue
+void battery_alarm_isr(void) 
 {
-    if (queue_count < MAX_EVENTS) {
-        alarm_queue[queue_count++] = (AlarmEvent){type, priority};
-    } else {
-        printf("[WARNING] Alarm queue is full!\n");
-    }
+    alarm_event_t event = {ALARM_LOW_BATTERY, LOW};
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xQueueSendFromISR(xAlarmQueue, &event, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 
-void handle_alarm(AlarmEvent event)                                         // Handle alarm based on its type
+void vAlarmHandlerTask(void *pvParameters)                                  // Task to handle alarms
 {
-    switch (event.type) 
-{
-        case ALARM_FIRE:
-            printf("[HIGH PRIORITY] Fire Alarm Triggered! Evacuate immediately!\n");
-            break;
-        case ALARM_SECURITY:
-            printf("[MEDIUM PRIORITY] Security Breach Detected! Lockdown protocols initiated!\n");
-            break;
-        case ALARM_LOW_BATTERY:
-            printf("[LOW PRIORITY] Low Battery Warning. Schedule maintenance soon.\n");
-            break;
-        default:
-            printf("[UNKNOWN] Unknown alarm type.\n");
-            break;
-    }
-}
+    alarm_event_t receivedEvent;
 
-
-void process_alarms()                                                      // Sort and process alarms based on priority
+    while (1) {
+        if (xQueueReceive(xAlarmQueue, &receivedEvent, portMAX_DELAY) == pdPASS) 
 {
-    // Sort the alarm_queue by priority (High to Low)
-    for (int i = 0; i < queue_count - 1; i++) {
-        for (int j = i + 1; j < queue_count; j++) {
-            if (alarm_queue[i].priority < alarm_queue[j].priority) 
-            {
-                AlarmEvent temp = alarm_queue[i];
-                alarm_queue[i] = alarm_queue[j];
-                alarm_queue[j] = temp;
+            switch (receivedEvent.type) {
+                case ALARM_FIRE:
+                    printf("[HIGH PRIORITY] Fire alarm triggered! Evacuate immediately!\n");
+                    break;
+                case ALARM_SECURITY:
+                    printf("[MEDIUM PRIORITY] Security breach detected! Lockdown initiated!\n");
+                    break;
+                case ALARM_LOW_BATTERY:
+                    printf("[LOW PRIORITY] Low battery warning. Please recharge.\n");
+                    break;
+                default:
+                    printf("[UNKNOWN] Unknown alarm type.\n");
+                    break;
             }
         }
     }
-
-    
-    for (int i = 0; i < queue_count; i++)                                 // Process each alarm
-    {
-        handle_alarm(alarm_queue[i]);
-    }
-
-    
-    queue_count = 0;
 }
 
-                                                                     
-void simulate_alarms()                                                 // Simulate alarm events
+
+void vAlarmSimulatorTask(void *pvParameters)                             // Task to simulate alarm triggers
 {
-    
-    fire_alarm_isr();
-    battery_alarm_isr();
-    security_alarm_isr();
+    while (1) {
+        fire_alarm_isr();         // Simulate fire
+        vTaskDelay(pdMS_TO_TICKS(2000));
 
-    
-    if (fire_triggered)                                              // Check flags and enqueue alarms
-    {
-        enqueue_alarm(ALARM_FIRE, HIGH);
-        fire_triggered = 0;
-    }
-    if (security_triggered) 
-    {
-        enqueue_alarm(ALARM_SECURITY, MEDIUM);
-        security_triggered = 0;
-    }
-    if (battery_triggered) 
-    {
-        enqueue_alarm(ALARM_LOW_BATTERY, LOW);
-        battery_triggered = 0;
-    }
+        battery_alarm_isr();      // Simulate low battery
+        vTaskDelay(pdMS_TO_TICKS(2000));
 
-    // Process alarms based on their priorities
-    process_alarms();
+        security_alarm_isr();     // Simulate security breach
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
 }
 
-int main() 
-{
-    printf(" Multi-Priority Alarm System (MPAS) Simulation \n");
 
+int main(void) 
+{
     
-    for (int i = 0; i < 3; i++)                                            // Simulate alarm scenarios multiple times
-    {
-        printf("\n[Cycle %d] Simulating alarm events...\n", i + 1);
-        simulate_alarms();
+    xAlarmQueue = xQueueCreate(10, sizeof(alarm_event_t));                      // Create queue with 10 alarm events
+
+    if (xAlarmQueue != NULL) {
+        // Create tasks
+        xTaskCreate(vAlarmHandlerTask, "AlarmHandler", configMINIMAL_STACK_SIZE + 100, NULL, 3, NULL);
+        xTaskCreate(vAlarmSimulatorTask, "AlarmSimulator", configMINIMAL_STACK_SIZE + 100, NULL, 1, NULL);
+
+        
+        vTaskStartScheduler();
+    } else {
+        printf("Failed to create alarm queue!\n");
     }
 
-    
+   
+    while (1);
     return 0;
 }
